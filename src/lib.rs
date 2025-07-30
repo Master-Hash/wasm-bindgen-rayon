@@ -12,6 +12,7 @@
  */
 
 #![doc = include_str!("../README.md")]
+#![feature(mpmc_channel)]
 
 // Note: `atomics` is whitelisted in `target_feature` detection, but `bulk-memory` isn't,
 // so we can check only presence of the former. This should be enough to catch most common
@@ -19,9 +20,9 @@
 #[cfg(all(target_arch = "wasm32", not(doc), not(target_feature = "atomics")))]
 compile_error!("Did you forget to enable `atomics` and `bulk-memory` features as outlined in wasm-bindgen-rayon README?");
 
-use crossbeam_channel::{bounded, Receiver, Sender};
 use js_sys::Promise;
 use rayon::{ThreadBuilder, ThreadPoolBuilder};
+use std::sync::mpmc::{sync_channel, Receiver, Sender};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 
@@ -59,7 +60,7 @@ impl wbg_rayon_PoolBuilder {
         if num_threads == 0 {
             wasm_bindgen::throw_str("Number of threads must be greater than zero.");
         }
-        let (sender, receiver) = bounded(num_threads);
+        let (sender, receiver) = sync_channel(num_threads);
         Self {
             num_threads,
             sender,
